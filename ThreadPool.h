@@ -16,7 +16,7 @@ public:
     ThreadPool(size_t);
     template<class F, class... Args>
     auto enqueue(F&& f, Args&&... args) 
-        -> std::future<decltype(f(args...))>>;
+        -> std::future<decltype(f(args...))>;
     ~ThreadPool();
 private:
     // need to keep track of threads so we can join them
@@ -43,7 +43,7 @@ inline ThreadPool::ThreadPool(size_t threads)
                     std::function<void()> task;
 
                     {
-                        std::lock_guard<std::mutex> lock(this->queue_mutex);
+                        std::unique_lock<std::mutex> lock(this->queue_mutex);
                         this->condition.wait(lock,
                             [this]{ return this->stop || !this->tasks.empty(); });
                         if(this->stop && this->tasks.empty())
@@ -61,7 +61,7 @@ inline ThreadPool::ThreadPool(size_t threads)
 // add new work item to the pool
 template<class F, class... Args>
 auto ThreadPool::enqueue(F&& f, Args&&... args) 
-    -> std::future<decltype(f(args...))>>
+    -> std::future<decltype(f(args...))>
 {
     using return_type = decltype(f(args...));
 
@@ -87,7 +87,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 inline ThreadPool::~ThreadPool()
 {
     {
-        std::unique_lock<std::mutex> lock(queue_mutex);
+        std::lock_guard<std::mutex> lock(queue_mutex);
         stop = true;
     }
     condition.notify_all();
